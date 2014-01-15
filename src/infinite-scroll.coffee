@@ -2,7 +2,32 @@ mod = angular.module('infinite-scroll', [])
 
 mod.directive 'infiniteScroll', ['$rootScope', '$window', '$timeout', ($rootScope, $window, $timeout) ->
   link: (scope, elem, attrs) ->
-    $window = angular.element($window)
+    Container = (container) ->
+      @element = angular.element(container)
+
+      @on = (args...) ->
+        @element.on(args...)
+
+      @off = (args...) ->
+        @element.off(args...)
+
+      @height = (args...) ->
+        @element.height(args...)
+
+      if container is $window
+        @bottom = ->
+          return @element.height() + @element.scrollTop()
+      else
+        @bottom = ->
+          return @element.height() + @element.offset().top
+
+      return @
+
+    container = new Container($window)
+    if attrs.infiniteScrollContainer?
+      _container_ = scope.$eval attrs.infiniteScrollContainer
+      if _container_?
+        container = new Container(_container_)
 
     # infinite-scroll-distance specifies how close to the bottom of the page
     # the window is allowed to be before we trigger a new scroll. The value
@@ -35,22 +60,22 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$timeout', ($rootScop
     # with a boolean that is set to true when the function is
     # called in order to throttle the function call.
     handler = ->
-      windowBottom = $window.height() + $window.scrollTop()
+      containerBottom = container.bottom()
       elementBottom = elem.offset().top + elem.height()
-      remaining = elementBottom - windowBottom
-      shouldScroll = remaining <= $window.height() * scrollDistance
+      remaining = elementBottom - containerBottom
+      shouldScroll = remaining <= container.height() * scrollDistance
 
       if shouldScroll && scrollEnabled
-        if $rootScope.$$phase
           scope.$eval attrs.infiniteScroll
-        else
-          scope.$apply attrs.infiniteScroll
       else if shouldScroll
         checkWhenEnabled = true
 
-    $window.on 'scroll', handler
+    outerHandler = ->
+      scope.$apply handler
+
+    container.on 'scroll', outerHandler
     scope.$on '$destroy', ->
-      $window.off 'scroll', handler
+      container.off 'scroll', outerHandler
 
     $timeout (->
       if attrs.infiniteScrollImmediateCheck

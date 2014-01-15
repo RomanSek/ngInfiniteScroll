@@ -1,5 +1,6 @@
-/* ng-infinite-scroll - v1.0.0 - 2013-02-23 */
-var mod;
+/* ng-infinite-scroll - v1.0.0 - 2014-01-15 */
+var mod,
+  __slice = [].slice;
 
 mod = angular.module('infinite-scroll', []);
 
@@ -7,8 +8,42 @@ mod.directive('infiniteScroll', [
   '$rootScope', '$window', '$timeout', function($rootScope, $window, $timeout) {
     return {
       link: function(scope, elem, attrs) {
-        var checkWhenEnabled, handler, scrollDistance, scrollEnabled;
-        $window = angular.element($window);
+        var Container, checkWhenEnabled, container, handler, outerHandler, scrollDistance, scrollEnabled, _container_;
+        Container = function(container) {
+          this.element = angular.element(container);
+          this.on = function() {
+            var args, _ref;
+            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+            return (_ref = this.element).on.apply(_ref, args);
+          };
+          this.off = function() {
+            var args, _ref;
+            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+            return (_ref = this.element).off.apply(_ref, args);
+          };
+          this.height = function() {
+            var args, _ref;
+            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+            return (_ref = this.element).height.apply(_ref, args);
+          };
+          if (container === $window) {
+            this.bottom = function() {
+              return this.element.height() + this.element.scrollTop();
+            };
+          } else {
+            this.bottom = function() {
+              return this.element.height() + this.element.offset().top;
+            };
+          }
+          return this;
+        };
+        container = new Container($window);
+        if (attrs.infiniteScrollContainer != null) {
+          _container_ = scope.$eval(attrs.infiniteScrollContainer);
+          if (_container_ != null) {
+            container = new Container(_container_);
+          }
+        }
         scrollDistance = 0;
         if (attrs.infiniteScrollDistance != null) {
           scope.$watch(attrs.infiniteScrollDistance, function(value) {
@@ -27,24 +62,23 @@ mod.directive('infiniteScroll', [
           });
         }
         handler = function() {
-          var elementBottom, remaining, shouldScroll, windowBottom;
-          windowBottom = $window.height() + $window.scrollTop();
+          var containerBottom, elementBottom, remaining, shouldScroll;
+          containerBottom = container.bottom();
           elementBottom = elem.offset().top + elem.height();
-          remaining = elementBottom - windowBottom;
-          shouldScroll = remaining <= $window.height() * scrollDistance;
+          remaining = elementBottom - containerBottom;
+          shouldScroll = remaining <= container.height() * scrollDistance;
           if (shouldScroll && scrollEnabled) {
-            if ($rootScope.$$phase) {
-              return scope.$eval(attrs.infiniteScroll);
-            } else {
-              return scope.$apply(attrs.infiniteScroll);
-            }
+            return scope.$eval(attrs.infiniteScroll);
           } else if (shouldScroll) {
             return checkWhenEnabled = true;
           }
         };
-        $window.on('scroll', handler);
+        outerHandler = function() {
+          return scope.$apply(handler);
+        };
+        container.on('scroll', outerHandler);
         scope.$on('$destroy', function() {
-          return $window.off('scroll', handler);
+          return container.off('scroll', outerHandler);
         });
         return $timeout((function() {
           if (attrs.infiniteScrollImmediateCheck) {
