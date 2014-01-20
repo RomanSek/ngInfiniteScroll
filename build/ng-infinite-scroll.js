@@ -1,6 +1,5 @@
-/* ng-infinite-scroll - v1.0.0 - 2014-01-15 */
-var mod,
-  __slice = [].slice;
+/* ng-infinite-scroll - v1.0.0 - 2014-01-20 */
+var mod;
 
 mod = angular.module('infinite-scroll', []);
 
@@ -8,40 +7,18 @@ mod.directive('infiniteScroll', [
   '$rootScope', '$window', '$timeout', function($rootScope, $window, $timeout) {
     return {
       link: function(scope, elem, attrs) {
-        var Container, checkWhenEnabled, container, handler, outerHandler, scrollDistance, scrollEnabled, _container_;
-        Container = function(container) {
-          this.element = angular.element(container);
-          this.on = function() {
-            var args, _ref;
-            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-            return (_ref = this.element).on.apply(_ref, args);
-          };
-          this.off = function() {
-            var args, _ref;
-            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-            return (_ref = this.element).off.apply(_ref, args);
-          };
-          this.height = function() {
-            var args, _ref;
-            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-            return (_ref = this.element).height.apply(_ref, args);
-          };
-          if (container === $window) {
-            this.bottom = function() {
-              return this.element.height() + this.element.scrollTop();
-            };
-          } else {
-            this.bottom = function() {
-              return this.element.height() + this.element.offset().top;
-            };
-          }
-          return this;
+        var bottom, checkWhenEnabled, container, handler, outerHandler, scrollDistance, scrollEnabled, _container_;
+        container = angular.element($window);
+        bottom = function() {
+          return container.height() + container.scrollTop();
         };
-        container = new Container($window);
         if (attrs.infiniteScrollContainer != null) {
           _container_ = scope.$eval(attrs.infiniteScrollContainer);
           if (_container_ != null) {
-            container = new Container(_container_);
+            container = elem.parents(_container_);
+            bottom = function() {
+              return container.height() + container.offset().top;
+            };
           }
         }
         scrollDistance = 0;
@@ -63,7 +40,7 @@ mod.directive('infiniteScroll', [
         }
         handler = function() {
           var containerBottom, elementBottom, remaining, shouldScroll;
-          containerBottom = container.bottom();
+          containerBottom = bottom();
           elementBottom = elem.offset().top + elem.height();
           remaining = elementBottom - containerBottom;
           shouldScroll = remaining <= container.height() * scrollDistance;

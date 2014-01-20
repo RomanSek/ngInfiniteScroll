@@ -2,32 +2,16 @@ mod = angular.module('infinite-scroll', [])
 
 mod.directive 'infiniteScroll', ['$rootScope', '$window', '$timeout', ($rootScope, $window, $timeout) ->
   link: (scope, elem, attrs) ->
-    Container = (container) ->
-      @element = angular.element(container)
+    container = angular.element($window)
+    bottom = ->
+      return container.height() + container.scrollTop()
 
-      @on = (args...) ->
-        @element.on(args...)
-
-      @off = (args...) ->
-        @element.off(args...)
-
-      @height = (args...) ->
-        @element.height(args...)
-
-      if container is $window
-        @bottom = ->
-          return @element.height() + @element.scrollTop()
-      else
-        @bottom = ->
-          return @element.height() + @element.offset().top
-
-      return @
-
-    container = new Container($window)
     if attrs.infiniteScrollContainer?
       _container_ = scope.$eval attrs.infiniteScrollContainer
       if _container_?
-        container = new Container(_container_)
+        container = elem.parents(_container_)
+        bottom = ->
+          return container.height() + container.offset().top
 
     # infinite-scroll-distance specifies how close to the bottom of the page
     # the window is allowed to be before we trigger a new scroll. The value
@@ -60,7 +44,7 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$timeout', ($rootScop
     # with a boolean that is set to true when the function is
     # called in order to throttle the function call.
     handler = ->
-      containerBottom = container.bottom()
+      containerBottom = bottom()
       elementBottom = elem.offset().top + elem.height()
       remaining = elementBottom - containerBottom
       shouldScroll = remaining <= container.height() * scrollDistance
